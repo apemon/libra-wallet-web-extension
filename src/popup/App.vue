@@ -1,5 +1,11 @@
 <template>
   <div id="app">
+    <div>
+      <img
+        :src="getImagePath('logo.png')"
+        class="header-image"
+      >
+    </div>
     <router-view/>
   </div>
 </template>
@@ -11,6 +17,11 @@ export default {
   },
   mounted() {
     this.$router.push({name:'wallet'})
+  },
+  methods: {
+      getImagePath(img) {
+        return chrome.extension.getURL('popup/assets/img/' + img)
+      }
   }
 }
 </script>
@@ -39,21 +50,12 @@ body {
   color: #42b983;
 }
 
-.tag {
-  cursor: pointer;
+.header-image {
+  width: 50%;
 }
-.label {
-  color: white;
-  font-size: 24px;
-}
-.wallet-nav {
-    text-align: right;
-    padding: 10px;
-}
-.wallet-form {
-    text-align: left;
-    padding: 5px 20px;
-    color: white;
+.wallet-button {
+    font-size: 18px;
+    margin: 0px 20px;
 }
 </style>
 
