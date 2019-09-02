@@ -8,6 +8,9 @@
                     :seed="userAddress"
                     :size="20"
                 />
+                <div class="wallet-address">
+                    <span>{{userAddress | shortUserAddress }}</span>
+                </div>
                 <div v-if="balance" class="wallet-balance">
                     <img :src="getImagePath('libra-ic.png')" class="wallet-balance-image" />
                     <span>{{ balance | numberWithCommas() }}</span>
@@ -22,8 +25,8 @@
                         Send
                     </b-button>
                     <b-button type="is-primary" size="is-medium"
-                            @click="receive" inverted outlined>
-                            Receive
+                        @click="receive" inverted outlined>
+                        Receive
                     </b-button>
                 </div>
             </div>
@@ -66,6 +69,7 @@
 <script>
 import { Route } from 'vue-router'
 import Avatar from '../components/Avatar.vue'
+import LibraService from '../service/libra_service'
 
 export default {
     components: {
@@ -76,17 +80,37 @@ export default {
             let parts = x.toString().split('.')
             parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
             return parts.join('.')
+        },
+        shortUserAddress (x) {
+            const first = x.substr(0, 7)
+            const last = x.substr(x.length - 7, x.length)
+            return first + '...' + last
         }
     },
     data() {
         return {
-            userAddress: '6d8f6e8f478f4833b6730e3207ead67c9be6757df52f97207570fbd55b76655a',
-            balance: 1000.123456,
+            balance: '0',
             isLoadingTransactions: false
         }
     },
-    async mounted() {
-        
+    async created() {
+        this.libra = new LibraService()
+        if(this.libra.isWalletExist()) {
+            // load wallet
+            this.wallet = this.libra.loadWallet()
+            this.userAddress = this.wallet.address
+        } else {
+            // create wallet
+            this.wallet = this.libra.createWallet()
+            this.libra.saveWallet(this.wallet)
+            this.userAddress = this.wallet.address
+            await this.libra.mint(this.wallet.address, 1000)
+        }
+        // update ui
+        let result = await this.libra.getBalance(this.wallet.address)
+        this.wallet.balance = result.balance
+        this.libra.saveBalance(this.wallet.balance)
+        this.balance = this.wallet.balance
     },
     methods: {
         getImagePath(img) {

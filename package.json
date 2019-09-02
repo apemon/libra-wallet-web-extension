@@ -18,6 +18,8 @@
     "buefy": "^0.8.2",
     "kulap-libra": "^1.0.16",
     "moment": "^2.24.0",
+    "qrcode.vue": "^1.6.2",
+    "store": "^2.0.12",
     "vue": "^2.6.10",
     "vue-clipboard2": "^0.3.0",
     "vue-router": "^3.0.1",
