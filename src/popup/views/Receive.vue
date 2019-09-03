@@ -29,11 +29,6 @@ export default {
         QrcodeVue
     },
     filters: {
-        numberWithCommas (x) {
-            let parts = x.toString().split('.')
-            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-            return parts.join('.')
-        },
         shortUserAddress (x) {
             const first = x.substr(0, 7)
             const last = x.substr(x.length - 7, x.length)
@@ -66,11 +61,5 @@ export default {
 .wallet-address {
     word-break: break-all;
     padding: 20px;
-}
-</style>
-<style>
-.fa .fas{
-    font-weight: 100;
-    font-size: 18px;
 }
 </style>

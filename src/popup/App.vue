@@ -55,7 +55,7 @@ body {
 }
 .wallet-button {
     font-size: 18px;
-    margin: 0px 20px;
+    margin: 0px 10px;
 }
 </style>
 

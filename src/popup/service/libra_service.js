@@ -87,6 +87,31 @@ class Libra {
             throw new Error(err.message)
         }
     }
+
+    // copy from libra-wallet-poc
+    async transfer (mnemonic, address, amount) {
+        const wallet = new LibraWallet({ mnemonic: mnemonic })
+        const account = wallet.generateAccount(0) // Derivation paths to "LIBRA WALLET: derived key$0"
+        const amountToTransfer = BigNumber(amount).times(1e6) // Amount in micro libras
+
+        // Stamp account state before transfering
+        const beforeAccountState = await this.client.getAccountState(account.getAddress())
+
+        // Transfer
+        const response = await this.client.transferCoins(account, address, amountToTransfer)
+        if (response.acStatus !== LibraAdmissionControlStatus.ACCEPTED) {
+            throw new Error(`admission_control failed with status ${LibraAdmissionControlStatus[response.acStatus]}`)
+        }
+
+        // Ensure sender account balance was reduced accordingly
+        await response.awaitConfirmation(this.client)
+        const afterAccountState = await this.client.getAccountState(account.getAddress())
+        if (afterAccountState.balance.toString(10) !== beforeAccountState.balance.minus(amountToTransfer).toString(10)) {
+            throw new Error(`transfer failed`)
+        }
+
+        return response
+    }
 }
 
 export default Libra

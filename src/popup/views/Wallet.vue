@@ -20,13 +20,13 @@
                 </div>
                 <!-- button -->
                 <div class="wallet-button-group">
-                    <b-button type="is-primary" size="is-medium"
-                        @click="openSend()" inverted outlined>
-                        Send
-                    </b-button>
-                    <b-button type="is-primary" size="is-medium"
+                    <b-button type="is-primary" size="is-medium" class="wallet-button"
                         @click="openReceive()" inverted outlined>
                         Receive
+                    </b-button>
+                    <b-button type="is-primary" size="is-medium" class="wallet-button"
+                        @click="openSend()" inverted outlined>
+                        Send
                     </b-button>
                 </div>
             </div>
@@ -109,7 +109,7 @@ export default {
             return chrome.extension.getURL('popup/assets/img/' + img)
         },
         openSend() {
-
+            this.$router.push({name:'send'})
         },
         openReceive() {
             this.$router.push({name:'receive'})
@@ -134,10 +134,6 @@ export default {
 }
 .wallet-button-group {
     margin-top: 20px;
-}
-.wallet-button {
-    font-size: 18px;
-    margin: 0px 20px;
 }
 .transaction-card {
     background-color: white;
