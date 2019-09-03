@@ -21,11 +21,11 @@
                 <!-- button -->
                 <div class="wallet-button-group">
                     <b-button type="is-primary" size="is-medium"
-                        @click="send" inverted outlined>
+                        @click="openSend()" inverted outlined>
                         Send
                     </b-button>
                     <b-button type="is-primary" size="is-medium"
-                        @click="receive" inverted outlined>
+                        @click="openReceive()" inverted outlined>
                         Receive
                     </b-button>
                 </div>
@@ -108,11 +108,11 @@ export default {
         getImagePath(img) {
             return chrome.extension.getURL('popup/assets/img/' + img)
         },
-        send() {
+        openSend() {
 
         },
-        receive() {
-
+        openReceive() {
+            this.$router.push({name:'receive'})
         },
         openExplorer(link) {
             chrome.tabs.create({url:link})
