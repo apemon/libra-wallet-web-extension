@@ -63,6 +63,30 @@ class Libra {
     async mint (address, amount) {
         return await axios.post('https://libraservice3.kulap.io' + '/mint', { address: address, amount: amount })
     }
+
+    // because chrome extension don't allow call to libexplorer api, so we use kulap api instead
+    async getTransactionHistory (address) {
+        const url = 'https://libraservice3.kulap.io/transactionHistory'
+        const request = {
+            address: address
+        }
+        try {
+            const response = await axios.post(url,request)
+            let transactions = response.data.transactions.map( (tx) => {
+                // check minter
+                if(tx.fromAddress == '000000000000000000000000000000000000000000000000000000000a550c18') {
+                    tx.event = 'mint'
+                }
+                // format date
+                let date = moment(tx.date)
+                tx.date = date.format('d MMM YYYY') + ' at ' + date.format('HH:mm')
+                return tx
+            })
+            return transactions
+        } catch (err) {
+            throw new Error(err.message)
+        }
+    }
 }
 
 export default Libra

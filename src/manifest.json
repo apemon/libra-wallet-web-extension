@@ -20,7 +20,8 @@
     "inpage.js"
   ],
   "permissions": [
-    "http://faucet.testnet.libra.org/*",
-    "https://libraservice3.kulap.io/*"
+    "*://*.testnet.libra.org/*",
+    "*://libraservice3.kulap.io/*",
+    "*://*.libexplorer.com/*"
   ]
 }

@@ -13,7 +13,7 @@
                 </div>
                 <div v-if="balance" class="wallet-balance">
                     <img :src="getImagePath('libra-ic.png')" class="wallet-balance-image" />
-                    <span>{{ balance | numberWithCommas() }}</span>
+                    <span>{{ balance | numberWithCommas }}</span>
                 </div>
                 <div v-else class="wallet-balance">
                     <span>Loading ...</span>
@@ -37,28 +37,17 @@
                 <div class="transaction-title">
                     <span>History</span>
                 </div>
-                <div class="transaction-list">
+                <div v-for="transaction in transactions" class="transaction-list" @click="openExplorer(transaction.explorerLink)">
                     <div class="transaction-header">
-                        <span>24 Aug 2019 at 12:20</span>
+                        <span>{{transaction.date}}</span>
                     </div>
-                    <div class="transaction-body">
-                        <span>RECEIVED</span>
-                        <span class="transaction-amount">100.000 Coins</span>
+                    <div class="transaction-body" v-bind:style= "[transaction.event === 'sent' ? {'color': '#483DB1'} : { 'color': '#55C81F' }]">
+                        <span>{{transaction.event.toUpperCase()}}</span>
+                        <span class="transaction-amount">{{transaction.amount | numberWithCommas}} Coins</span>
                     </div>
                     <div class="transaction-footer">
-                        <span>From: xxxx....xxxx</span>
-                    </div>
-                </div>
-                <div class="transaction-list">
-                    <div class="transaction-header">
-                        <span>24 Aug 2019 at 12:20</span>
-                    </div>
-                    <div class="transaction-body">
-                        <span>RECEIVED</span>
-                        <span class="transaction-amount">100.000 Coins</span>
-                    </div>
-                    <div class="transaction-footer">
-                        <span>From: xxxx....xxxx</span>
+                        <span v-if="transaction.event === 'sent'">To: {{transaction.toAddress | shortUserAddress}}</span>
+                        <span v-else>From: {{transaction.fromAddress | shortUserAddress}}</span>
                     </div>
                 </div>
             </div>
@@ -90,7 +79,7 @@ export default {
     data() {
         return {
             balance: '0',
-            isLoadingTransactions: false
+            isLoadingTransactions: true
         }
     },
     async created() {
@@ -111,6 +100,9 @@ export default {
         this.wallet.balance = result.balance
         this.libra.saveBalance(this.wallet.balance)
         this.balance = this.wallet.balance
+        // fetch transactions
+        this.transactions =  await this.libra.getTransactionHistory(this.wallet.address)
+        this.isLoadingTransactions = false
     },
     methods: {
         getImagePath(img) {
@@ -121,6 +113,9 @@ export default {
         },
         receive() {
 
+        },
+        openExplorer(link) {
+            chrome.tabs.create({url:link})
         }
     }
 }
