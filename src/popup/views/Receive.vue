@@ -4,9 +4,9 @@
             <qrcode-vue :value="address" :size="size" level="H"></qrcode-vue>
         </div>
         <div class="wallet-body">
-            <div class="wallet-address">
+            <div class="wallet-address" @click="copyAddress">
                 <span>{{address}}</span>
-                <b-icon size="is-small" icon="copy"></b-icon>
+                <b-icon custom-class="wallet-address-icon" size="is-small" icon="copy"></b-icon>
             </div>
             <div class="button-group">
                 <b-button class="wallet-button"
@@ -49,6 +49,22 @@ export default {
     methods: {
         back () {
             this.$router.back()
+        },
+        async copyAddress () {
+            try {
+                let response = await this.$copyText(this.address)
+                this.$buefy.toast.open({
+                    message: 'Copied',
+                    position: 'is-bottom',
+                    type: 'is-success'
+                })
+            } catch (err) {
+                this.$buefy.toast.open({
+                    message: err,
+                    position: 'is-bottom',
+                    type: 'is-danger'
+                })
+            }
         }
     }
 }
@@ -61,5 +77,10 @@ export default {
 .wallet-address {
     word-break: break-all;
     padding: 20px;
+    cursor: pointer;
+}
+.wallet-address-icon {
+    font-weight: 100;
+    font-size: 18px;
 }
 </style>

@@ -5,11 +5,13 @@ import router from './router'
 
 import Buefy from 'buefy'
 import VueLoading from 'vue-loading-template'
+import VueClipboard from 'vue-clipboard2'
 
 Vue.use(Buefy, {
   defaultIconPack: 'fas'
 })
 Vue.use(VueLoading)
+Vue.use(VueClipboard)
 
 Vue.config.productionTip = false
 
