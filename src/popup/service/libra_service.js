@@ -99,6 +99,8 @@ class Libra {
 
         // Transfer
         const response = await this.client.transferCoins(account, address, amountToTransfer)
+        // mock
+        return response
         if (response.acStatus !== LibraAdmissionControlStatus.ACCEPTED) {
             throw new Error(`admission_control failed with status ${LibraAdmissionControlStatus[response.acStatus]}`)
         }

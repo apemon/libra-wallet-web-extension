@@ -3,6 +3,7 @@ import Router from 'vue-router';
 import WalletView from './views/Wallet'
 import ReceiveView from './views/Receive'
 import SendView from './views/Send'
+import ConfirmView from './views/Confirm'
 
 Vue.use(Router);
 
@@ -22,6 +23,10 @@ export default new Router({
       path: '/send',
       name: 'send',
       component: SendView
+    },{
+      path: '/confirm',
+      name: 'confirm',
+      component: ConfirmView
     }
   ],
 });

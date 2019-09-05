@@ -12,6 +12,8 @@ const config = {
   entry: {
     'background': './background.js',
     'popup/popup': './popup/popup.js',
+    'contentscript': './contentscript.js',
+    'inpage': './inpage.js'
   },
   output: {
     path: __dirname + '/dist',

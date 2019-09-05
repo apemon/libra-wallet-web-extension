@@ -16,7 +16,13 @@ export default {
     return {}
   },
   mounted() {
-    this.$router.push({name:'wallet'})
+    if(this.$route.query.action == 'confirm') {
+      this.$router.push({name:'confirm', query: {
+        destination: this.$route.query.destination,
+        amount: this.$route.query.amount
+      }})
+    }
+    else this.$router.push({name:'wallet'})
   },
   methods: {
       getImagePath(img) {

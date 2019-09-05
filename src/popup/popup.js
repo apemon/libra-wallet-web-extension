@@ -13,7 +13,7 @@ Vue.use(Buefy, {
 Vue.use(VueLoading)
 Vue.use(VueClipboard)
 
-Vue.config.productionTip = false
+Vue.config.productionTip = true
 
 new Vue({
   router,
