@@ -19,7 +19,8 @@ export default {
     if(this.$route.query.action == 'confirm') {
       this.$router.push({name:'confirm', query: {
         destination: this.$route.query.destination,
-        amount: this.$route.query.amount
+        amount: this.$route.query.amount,
+        id: this.$route.query.id
       }})
     }
     else this.$router.push({name:'wallet'})

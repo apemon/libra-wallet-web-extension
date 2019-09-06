@@ -1,8 +1,9 @@
 {
   "name": "libra-extension",
   "description": "A Vue.js web extension",
-  "version": null,
+  "version": "0.0.1",
   "manifest_version": 2,
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
   "icons": {
     "48": "icons/icon_48.png",
     "128": "icons/icon_128.png"
@@ -25,7 +26,8 @@
     "*://*.libexplorer.com/*",
     "activeTab",
     "tabs",
-    "alarms"
+    "alarms",
+    "storage"
   ],
   "content_scripts": [
     {

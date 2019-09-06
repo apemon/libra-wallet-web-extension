@@ -28,6 +28,10 @@
                         @click="openSend()" inverted outlined>
                         Send
                     </b-button>
+                    <b-button type="is-primary" size="is-medium" class="wallet-button"
+                        @click="test()" inverted outlined>
+                        Test
+                    </b-button>
                 </div>
             </div>
         </div>
@@ -84,6 +88,7 @@ export default {
     },
     async created() {
         this.libra = new LibraService()
+        this.client = this.libra.getClient()
         if(this.libra.isWalletExist()) {
             // load wallet
             this.wallet = this.libra.loadWallet()
@@ -96,7 +101,7 @@ export default {
             await this.libra.mint(this.wallet.address, 1000)
         }
         // update ui
-        let result = await this.libra.getBalance(this.wallet.address)
+        let result = await this.libra.getBalance(this.client, this.wallet.address)
         this.wallet.balance = result.balance
         this.libra.saveBalance(this.wallet.balance)
         this.balance = this.wallet.balance
@@ -116,6 +121,10 @@ export default {
         },
         openExplorer(link) {
             chrome.tabs.create({url:link})
+        },
+        async test () {
+            let aa = await this.libra.test()
+            alert(aa)
         }
     }
 }

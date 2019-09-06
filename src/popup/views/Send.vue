@@ -61,6 +61,7 @@ export default {
     },
     async created() {
         this.libra = new LibraService()
+        this.client = this.libra.getClient()
         this.wallet = this.libra.loadWallet()
     },
     methods: {
@@ -72,7 +73,7 @@ export default {
             let destAddress = this.dest
             try {
                 this.isTransfering = true
-                await this.libra.transfer(this.wallet.mnemonic, destAddress, amount)
+                await this.libra.transfer(this.client, this.wallet.mnemonic, destAddress, amount)
                 this.isTransfering = false
                 this.$router.push({name:'wallet'})
             } catch (err) {

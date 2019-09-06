@@ -55,9 +55,11 @@ export default {
     },
     async created() {
         this.libra = new LibraService()
+        this.client = this.libra.getClient()
         this.wallet = this.libra.loadWallet()
         this.amount = this.$route.query.amount
         this.destAddress = this.$route.query.destination
+        this.requestId = this.$route.query.id
     },
     methods: {
         async transfer () {
@@ -65,17 +67,20 @@ export default {
             let destAddress = this.dest
             try {
                 this.isTransfering = true
-                let response = await this.libra.transfer(this.wallet.mnemonic, destAddress, amount)
+                let response = await this.libra.transfer(this.client, this.wallet.mnemonic, destAddress, amount)
                 this.isTransfering = false
-                let msg = {
-                    type: 'PAYMENT_SUCCESS',
-                    response: response
-                }
 
                 chrome.tabs.query({active: true}, (tabs) => {
-                    let activeTab = tabs[0];
-                    alert(JSON.stringify(activeTab))
-                    chrome.tabs.sendMessage(activeTab.id, {type:'PAYMENT_SUCCESS'}, (res) => {
+                    let activeTabs = tabs.filter((tab) => {
+                        return !tab.url.includes('chrome-extension://')
+                    })
+                    let activeTabId = activeTabs[0].id
+                    let request = {
+                        type: 'TRANSFER_RESPONSE',
+                        id: this.requestId,
+                        data: {}
+                    }
+                    chrome.tabs.sendMessage(activeTabId, request, (res) => {
                         window.close()
                     })
                 });

@@ -6,12 +6,16 @@ const store = require('store')
 
 class Libra {
     constructor () {
-        this.client = new LibraClient({
+
+    }
+
+    getClient () {
+        return new LibraClient({
             transferProtocol: 'https',
             host: 'ac-libra-testnet.kulap.io',
             port: '443',
             dataProtocol: 'grpc-web-text'
-        })
+        }) 
     }
 
     isWalletExist () {
@@ -50,8 +54,8 @@ class Libra {
         store.set('balance', balance)
     }
 
-    async getBalance (address) {
-        const accountState = await this.client.getAccountState(address)
+    async getBalance (client, address) {
+        const accountState = await client.getAccountState(address)
         const balance = BigNumber(accountState.balance.toString(10))
         const balanceUnit = balance.dividedBy(BigNumber(1e6))
         return {
@@ -89,16 +93,16 @@ class Libra {
     }
 
     // copy from libra-wallet-poc
-    async transfer (mnemonic, address, amount) {
+    async transfer (client, mnemonic, address, amount) {
         const wallet = new LibraWallet({ mnemonic: mnemonic })
         const account = wallet.generateAccount(0) // Derivation paths to "LIBRA WALLET: derived key$0"
         const amountToTransfer = BigNumber(amount).times(1e6) // Amount in micro libras
 
         // Stamp account state before transfering
-        const beforeAccountState = await this.client.getAccountState(account.getAddress())
+        const beforeAccountState = await client.getAccountState(account.getAddress())
 
         // Transfer
-        const response = await this.client.transferCoins(account, address, amountToTransfer)
+        const response = await client.transferCoins(account, address, amountToTransfer)
         // mock
         return response
         if (response.acStatus !== LibraAdmissionControlStatus.ACCEPTED) {
@@ -106,13 +110,25 @@ class Libra {
         }
 
         // Ensure sender account balance was reduced accordingly
-        await response.awaitConfirmation(this.client)
-        const afterAccountState = await this.client.getAccountState(account.getAddress())
+        await response.awaitConfirmation(client)
+        const afterAccountState = await client.getAccountState(account.getAddress())
         if (afterAccountState.balance.toString(10) !== beforeAccountState.balance.minus(amountToTransfer).toString(10)) {
             throw new Error(`transfer failed`)
         }
 
         return response
+    }
+
+    test() {
+        let msg = {
+            type: 'ACCOUNT_INFO'
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                resolve(res.type)
+            })
+        })
+        return promise
     }
 }
 
