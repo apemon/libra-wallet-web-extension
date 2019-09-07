@@ -23,7 +23,7 @@ export default {
         id: this.$route.query.id
       }})
     }
-    else this.$router.push({name:'wallet'})
+    else this.$router.push({name:'home'})
   },
   methods: {
       getImagePath(img) {
