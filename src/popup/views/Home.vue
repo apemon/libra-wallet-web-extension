@@ -30,7 +30,9 @@ import LibraService from '../service/libra_service'
 
 export default {
     data() {
-
+        return {
+            
+        }
     },
     async created() {
         // check that wallet is created

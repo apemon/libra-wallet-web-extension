@@ -1,14 +1,26 @@
-const BigNumber = require('bignumber.js')
-const { LibraClient, LibraWallet, LibraAdmissionControlStatus } = require('kulap-libra')
-const axios = require('axios')
-const moment = require('moment')
-const store = require('store')
-
-class Libra {
+class LibraService {
     constructor () {
 
     }
 
+    async createWallet(password) {
+        let msg = {
+            from: 'popup',
+            type: 'WALLET_CREATE_REQUEST',
+            data: {
+                password: password
+            }
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                alert(res.type)
+                resolve(res.data)
+            })
+        })
+        return promise
+    }
+
+    /*
     getClient () {
         return new LibraClient({
             transferProtocol: 'https',
@@ -91,7 +103,7 @@ class Libra {
             throw new Error(err.message)
         }
     }
-
+    */
     // copy from libra-wallet-poc
     async transfer (client, mnemonic, address, amount) {
         const wallet = new LibraWallet({ mnemonic: mnemonic })
@@ -132,4 +144,4 @@ class Libra {
     }
 }
 
-export default Libra
+export default LibraService
