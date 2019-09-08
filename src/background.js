@@ -5,40 +5,65 @@ const moment = require('moment')
 const forge = require('node-forge')
 const bip39 = require('bip39')
 
+const LOCK_TIME_PERIOD = 1 * 60
+
+let wallet = {}
 let isWalletLocked = true
 
 chrome.runtime.onInstalled.addListener(() => {
-
+    
 })
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-    isWalletLocked = true
+    if(alarm.name == 'lockAlarm') {
+        wallet = {}
+        isWalletLocked = true
+        chrome.alarms.clear(alarm.name)
+    }
 })
 
 chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
+    let response = {}
     switch (msg.type) {
         case 'WALLET_CREATE_REQUEST':
             const password = msg.data.password
-            let wallet = await createWallet(password)
-            let response = {
+            wallet = await createWallet(password)
+            response = {
                 type: 'WALLET_CREATE_RESPONSE',
                 data: wallet
             }
+            isWalletLocked = false
             reply(response)
             break
-        case 'ACCOUNT_INFO':
-            let res = {
-                type: 'ACCOUNT_INFO_RESPONSE',
-                data: 'xxx'
+        case 'WALLET_EXIST_REQUEST':
+            const isExist = await walletExist()
+            response = {
+                type: 'WALLET_EXIST_RESPONSE',
             }
-            reply(res)
+            if(!isExist)
+                response.error = 'EMPTY'
+            reply(response)
             break
-        case 'WALLET_UNLOCK':
-            isWalletLocked = false
+        case 'WALLET_INQUIRY_REQUEST':
+            response = {
+                type: 'WALLET_INQUIRY_RESPONSE',
+            }
+            if(isWalletLocked)
+                response.error = 'LOCKED'
+            else response.data = wallet
+            reply(response)
             break
-        case 'WALLET_CREATE':
-            break
-        case 'WALLET_STATUS':
+        case 'WALLET_UNLOCK_REQUEST':
+            response = {
+                type: 'WALLET_UNLOCK_RESPONSE'
+            }
+            try {
+                wallet = await unlockWallet(msg.data.password)
+                isWalletLocked = false
+            } catch (err) {
+                response.error = err
+            }
+            reply(response)
             break
     }
 })
@@ -96,11 +121,39 @@ function chromeSendMessage(msg) {
 }
 
 /* general function here */
-function unlock() {
-
+function addLockAlarm() {
+    chrome.alarms.create('lockAlarm', {
+        periodInMinutes: LOCK_TIME_PERIOD / 60
+    })
 }
 
-function clearWallet() {
+async function unlockWallet(password) {
+    let promise = new Promise( async (resolve, reject) => {
+        try {
+            let encrypted = await loadStorage('mnemonic')
+            let mnemonic = decrypt(encrypted.mnemonic, password)
+            let address = await loadStorage('address')
+            let wallet = {
+                mnemonic: mnemonic,
+                address: address.address,
+                nextLockTime: moment().add(LOCK_TIME_PERIOD, 'second').toDate().getTime()
+            }
+            addLockAlarm()
+            resolve(wallet)
+        } catch (err) {
+            reject(err)
+        }
+    })
+    return promise
+}
+
+async function walletExist() {
+    let res = await loadStorage('address')
+    if(!res.address) return false
+    else return true
+}
+
+function clearStorage() {
     let promise = new Promise((resolve, reject) => {
         chrome.storage.sync.clear(() => {
             resolve()
@@ -121,6 +174,15 @@ function saveStorage(key, value) {
     return promise
 }
 
+function loadStorage(key) {
+    let promise = new Promise((resolve, reject) => {
+        chrome.storage.sync.get([key], (result)=> {
+            resolve(result)
+        })
+    })
+    return promise
+}
+
 async function saveWallet(address, encryptedWallet) {
     await saveStorage('mnemonic', encryptedWallet)
     await saveStorage('address', address)
@@ -128,7 +190,7 @@ async function saveWallet(address, encryptedWallet) {
 
 async function createWallet(password) {
     // clear wallet
-    await clearWallet()
+    await clearStorage()
     // generate key pair
     let wallet = generateWallet()
     // encrypt it and store in local db
@@ -139,6 +201,11 @@ async function createWallet(password) {
     // get some balance
     let balance = await getBalance(wallet.address).balance
     await saveStorage('balance', balance)
+    // get next lock time
+    let nextLockTime = moment().add(LOCK_TIME_PERIOD, 'second').toDate().getTime()
+    await saveStorage('nextLockTime', nextLockTime)
+    wallet.nextLockTime = nextLockTime
+    addLockAlarm()
     return wallet
 }
 
@@ -160,14 +227,16 @@ function encrypt(text, password) {
 }
 
 function decrypt(encrypted, password) {
+    encrypted = JSON.parse(encrypted)
     const iv = forge.util.decode64(encrypted.iv)
     const salt = forge.util.decode64(encrypted.salt)
     const key = forge.pkcs5.pbkdf2(password, salt, 8, 32)
     let decipher = forge.cipher.createDecipher('AES-CBC', key)
     decipher.start({iv:iv})
     decipher.update(forge.util.createBuffer(forge.util.hexToBytes(encrypted.cipherText)))
-    decipher.finish()
-    return decipher.output.toString()
+    if(!decipher.finish()) throw new Error('wrong key')
+    let decrypted = decipher.output.toString()
+    return decrypted
 }
 
 /** libra related function */

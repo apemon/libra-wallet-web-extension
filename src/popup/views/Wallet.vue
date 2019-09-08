@@ -11,6 +11,7 @@
                 <div class="wallet-address">
                     <span>{{userAddress | shortUserAddress }}</span>
                 </div>
+                <!--
                 <div v-if="balance" class="wallet-balance">
                     <img :src="getImagePath('libra-ic.png')" class="wallet-balance-image" />
                     <span>{{ balance | numberWithCommas }}</span>
@@ -18,6 +19,7 @@
                 <div v-else class="wallet-balance">
                     <span>Loading ...</span>
                 </div>
+                -->
                 <!-- button -->
                 <div class="wallet-button-group">
                     <b-button type="is-primary" size="is-medium" class="wallet-button"
@@ -28,13 +30,10 @@
                         @click="openSend()" inverted outlined>
                         Send
                     </b-button>
-                    <b-button type="is-primary" size="is-medium" class="wallet-button"
-                        @click="test()" inverted outlined>
-                        Test
-                    </b-button>
                 </div>
             </div>
         </div>
+        <!--
         <div class="transaction-card">
             <div v-if="isLoadingTransactions">Loading Transactions ...</div>
             <div v-if="!isLoadingTransactions">
@@ -56,6 +55,7 @@
                 </div>
             </div>
         </div>
+        -->
     </section>
 </template>
 
@@ -83,10 +83,20 @@ export default {
     data() {
         return {
             balance: '0',
-            isLoadingTransactions: true
+            isLoadingTransactions: true,
+            userAddress: this.$route.query.address
         }
     },
     async created() {
+        this.libra = new LibraService()
+        try {
+            this.wallet = await this.libra.getWalletInfo()
+            this.userAddress = this.wallet.address
+        } catch(err) {
+            alert(err)
+        }
+        
+        /*
         this.libra = new LibraService()
         this.client = this.libra.getClient()
         if(this.libra.isWalletExist()) {
@@ -108,6 +118,7 @@ export default {
         // fetch transactions
         this.transactions =  await this.libra.getTransactionHistory(this.wallet.address)
         this.isLoadingTransactions = false
+        */
     },
     methods: {
         getImagePath(img) {

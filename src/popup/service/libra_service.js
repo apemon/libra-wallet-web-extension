@@ -13,8 +13,54 @@ class LibraService {
         }
         let promise = new Promise((resolve, reject) => {
             chrome.runtime.sendMessage(msg, (res) => {
-                alert(res.type)
                 resolve(res.data)
+            })
+        })
+        return promise
+    }
+
+    async checkWalletExist() {
+        let msg = {
+            from: 'popup',
+            type: 'WALLET_EXIST_REQUEST'
+        }
+        let promise = new Promise( (resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                if(res.error) reject(res.error)
+                resolve()
+            })
+        })
+        return promise
+    }
+
+    async unlockWallet(password) {
+        let msg = {
+            from: 'popup',
+            type: 'WALLET_UNLOCK_REQUEST',
+            data: {
+                password: password
+            }
+        }
+        let promise = new Promise( (resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                if(!res.error) {
+                    resolve()
+                } else reject(res.error)
+            })
+        })
+        return promise
+    }
+
+    async getWalletInfo() {
+        let msg = {
+            from: 'popup',
+            type: 'WALLET_INQUIRY_REQUEST'
+        }
+        let promise = new Promise( (resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                if(!res.error) {
+                    resolve(res.data)
+                } else reject(res.error)
             })
         })
         return promise

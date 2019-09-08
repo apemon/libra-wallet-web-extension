@@ -17,7 +17,7 @@ export default {
       default: 10
     }
   },
-  created () {
+  mounted () {
     const icon = createIcon({
       seed: this.seed,
       size: this.size
