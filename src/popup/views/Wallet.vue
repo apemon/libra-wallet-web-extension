@@ -11,7 +11,6 @@
                 <div class="wallet-address">
                     <span>{{userAddress | shortUserAddress }}</span>
                 </div>
-                <!--
                 <div v-if="balance" class="wallet-balance">
                     <img :src="getImagePath('libra-ic.png')" class="wallet-balance-image" />
                     <span>{{ balance | numberWithCommas }}</span>
@@ -19,7 +18,6 @@
                 <div v-else class="wallet-balance">
                     <span>Loading ...</span>
                 </div>
-                -->
                 <!-- button -->
                 <div class="wallet-button-group">
                     <b-button type="is-primary" size="is-medium" class="wallet-button"
@@ -92,6 +90,14 @@ export default {
         try {
             this.wallet = await this.libra.getWalletInfo()
             this.userAddress = this.wallet.address
+            // get balance from cavhe
+            this.balance = await this.libra.inquiryBalance(this.userAddress)
+            // get transaction from cache
+            
+            // update balance
+            this.balance = await this.libra.updateBalance(this.userAddress)
+            // update transaction
+
         } catch(err) {
             alert(err)
         }

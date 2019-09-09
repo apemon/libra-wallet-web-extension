@@ -66,6 +66,38 @@ class LibraService {
         return promise
     }
 
+    async inquiryBalance(address) {
+        let msg = {
+            from : 'popup',
+            type: 'BALANCE_INQUIRY_REQUEST',
+            data: {
+                address: address
+            }
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                resolve(res.data.balance)
+            })
+        })
+        return promise
+    }
+
+    async updateBalance(address) {
+        let msg = {
+            from: 'popup',
+            type: 'BALANCE_UPDATE_REQUEST',
+            data: {
+                address: address
+            }
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                resolve(res.data.balance)
+            })
+        })
+        return promise
+    }
+
     /*
     getClient () {
         return new LibraClient({

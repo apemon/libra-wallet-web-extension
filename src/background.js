@@ -5,9 +5,11 @@ const moment = require('moment')
 const forge = require('node-forge')
 const bip39 = require('bip39')
 
-const LOCK_TIME_PERIOD = 1 * 60
+const LOCK_TIME_PERIOD = 15 * 60
+const LIBRA_SERVICE_URL = 'https://libraservice3.kulap.io'
 
 let wallet = {}
+let balance = 0
 let isWalletLocked = true
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -62,6 +64,29 @@ chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
                 isWalletLocked = false
             } catch (err) {
                 response.error = err
+            }
+            reply(response)
+            break
+        case 'BALANCE_INQUIRY_REQUEST':
+            balance = await inquiryBalance()
+            response = {
+                type: 'BALANCE_INQUIRY_RESPONSE',
+                data: {
+                    address: msg.data.address,
+                    balance: balance
+                }
+            }
+            reply(response)
+            break
+        case 'BALANCE_UPDATE_REQUEST':
+            console.log(msg.data.address)
+            balance = await updateBalance(msg.data.address)
+            response = {
+                type: 'BALANCE_UPDATE_RESPONSE',
+                data: {
+                    address: msg.data.address,
+                    balance: balance
+                }
             }
             reply(response)
             break
@@ -127,6 +152,18 @@ function addLockAlarm() {
     })
 }
 
+async function inquiryBalance() {
+    let balanceObj = await loadStorage('balance')
+    return balanceObj.balance
+}
+
+async function updateBalance(address) {
+    let balanceObj = await getBalance(address)
+    let balance = balanceObj.balance
+    await saveStorage('balance', balance)
+    return balance
+}
+
 async function unlockWallet(password) {
     let promise = new Promise( async (resolve, reject) => {
         try {
@@ -148,9 +185,12 @@ async function unlockWallet(password) {
 }
 
 async function walletExist() {
-    let res = await loadStorage('address')
-    if(!res.address) return false
-    else return true
+    try {
+        let res = await loadStorage('address')
+        return true
+    } catch (err) {
+        return false
+    }
 }
 
 function clearStorage() {
@@ -163,7 +203,6 @@ function clearStorage() {
 }
 
 function saveStorage(key, value) {
-    value = JSON.stringify(value)
     let json = {}
     json[key] = value
     let promise = new Promise((resolve, reject) => {
@@ -177,7 +216,9 @@ function saveStorage(key, value) {
 function loadStorage(key) {
     let promise = new Promise((resolve, reject) => {
         chrome.storage.sync.get([key], (result)=> {
-            resolve(result)
+            if(Object.keys(result).length === 0)
+                reject()
+            else resolve(result)
         })
     })
     return promise
@@ -199,8 +240,8 @@ async function createWallet(password) {
     // mint some balance
     await mint(wallet.address, 1000)
     // get some balance
-    let balance = await getBalance(wallet.address).balance
-    await saveStorage('balance', balance)
+    let balance = await getBalance(wallet.address)
+    await saveStorage('balance', balance.balance)
     // get next lock time
     let nextLockTime = moment().add(LOCK_TIME_PERIOD, 'second').toDate().getTime()
     await saveStorage('nextLockTime', nextLockTime)
@@ -227,7 +268,6 @@ function encrypt(text, password) {
 }
 
 function decrypt(encrypted, password) {
-    encrypted = JSON.parse(encrypted)
     const iv = forge.util.decode64(encrypted.iv)
     const salt = forge.util.decode64(encrypted.salt)
     const key = forge.pkcs5.pbkdf2(password, salt, 8, 32)
@@ -255,7 +295,7 @@ function generateWallet () {
 }
 
 async function getBalance (address) {
-    const client = new LibraClient({
+    let client = new LibraClient({
         transferProtocol: 'https',
         host: 'ac-libra-testnet.kulap.io',
         port: '443',
@@ -263,7 +303,7 @@ async function getBalance (address) {
     })
     const accountState = await client.getAccountState(address)
     const balance = BigNumber(accountState.balance.toString(10))
-    const balanceUnit = balance.dividedBy(BigNumber(1e6))
+    const balanceUnit = balance.dividedBy(BigNumber(1e6)).toString(10)
     return {
         balance: balanceUnit,
         balanceValue: balance.toString(10)
@@ -271,5 +311,5 @@ async function getBalance (address) {
 }
 
 async function mint (address, amount) {
-    return await axios.post('https://libraservice3.kulap.io' + '/mint', { address: address, amount: amount })
+    return await axios.post(LIBRA_SERVICE_URL + '/mint', { address: address, amount: amount })
 }
