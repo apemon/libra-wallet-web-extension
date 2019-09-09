@@ -43,7 +43,7 @@ export default {
     },
     async created() {
         this.libra = new LibraService()
-        this.wallet = this.libra.loadWallet()
+        this.wallet = await this.libra.getWalletInfo()
         this.address = this.wallet.address
     },
     methods: {

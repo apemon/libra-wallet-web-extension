@@ -10,6 +10,7 @@ const LIBRA_SERVICE_URL = 'https://libraservice3.kulap.io'
 
 let wallet = {}
 let balance = 0
+let transactions = []
 let isWalletLocked = true
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -79,13 +80,34 @@ chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
             reply(response)
             break
         case 'BALANCE_UPDATE_REQUEST':
-            console.log(msg.data.address)
             balance = await updateBalance(msg.data.address)
             response = {
                 type: 'BALANCE_UPDATE_RESPONSE',
                 data: {
                     address: msg.data.address,
                     balance: balance
+                }
+            }
+            reply(response)
+            break
+        case 'TRANSACTION_INQUIRY_REQUEST':
+            transactions = await inquiryTransaction()
+            response = {
+                type: 'TRANSACTION_INQUIRY_RESPONSE',
+                data: {
+                    address: msg.data.address,
+                    transactions: transactions
+                }
+            }
+            reply(response)
+            break
+        case 'TRANSACTION_UPDATE_REQUEST':
+            transactions = await updateTransaction(msg.data.address)
+            response = {
+                type: 'TRANSACTION_UPDATE_RESPONSE',
+                data: {
+                    address: msg.data.address,
+                    transactions: transactions
                 }
             }
             reply(response)
@@ -162,6 +184,21 @@ async function updateBalance(address) {
     let balance = balanceObj.balance
     await saveStorage('balance', balance)
     return balance
+}
+
+async function inquiryTransaction() {
+    try {
+        let transactionsObj = await loadStorage('transactions')
+        return transactionsObj.transactions
+    } catch (err) {
+        return []
+    }
+}
+
+async function updateTransaction(address) {
+    let transactions = await getTransactionHistory(address)
+    await saveStorage('transactions', transactions)
+    return transactions
 }
 
 async function unlockWallet(password) {
@@ -312,4 +349,24 @@ async function getBalance (address) {
 
 async function mint (address, amount) {
     return await axios.post(LIBRA_SERVICE_URL + '/mint', { address: address, amount: amount })
+}
+
+// because chrome extension don't allow call to libexplorer api, so we use kulap api instead
+async function getTransactionHistory (address) {
+    try {
+        const response = await axios.post(LIBRA_SERVICE_URL + '/transactionHistory', {address: address})
+        let transactions = response.data.transactions.map( (tx) => {
+            // check minter
+            if(tx.fromAddress == '000000000000000000000000000000000000000000000000000000000a550c18') {
+                tx.event = 'mint'
+            }
+            // format date
+            let date = moment(tx.date)
+            tx.date = date.format('d MMM YYYY') + ' at ' + date.format('HH:mm')
+            return tx
+        })
+        return transactions
+    } catch (err) {
+        throw new Error(err.message)
+    }
 }

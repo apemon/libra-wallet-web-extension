@@ -31,7 +31,6 @@
                 </div>
             </div>
         </div>
-        <!--
         <div class="transaction-card">
             <div v-if="isLoadingTransactions">Loading Transactions ...</div>
             <div v-if="!isLoadingTransactions">
@@ -53,7 +52,6 @@
                 </div>
             </div>
         </div>
-        -->
     </section>
 </template>
 
@@ -82,7 +80,8 @@ export default {
         return {
             balance: '0',
             isLoadingTransactions: true,
-            userAddress: this.$route.query.address
+            userAddress: this.$route.query.address,
+            transactions: []
         }
     },
     async created() {
@@ -93,38 +92,15 @@ export default {
             // get balance from cavhe
             this.balance = await this.libra.inquiryBalance(this.userAddress)
             // get transaction from cache
-            
+            this.transactions = await this.libra.inquiryTransaction(this.userAddress)
+            this.isLoadingTransactions = false
             // update balance
             this.balance = await this.libra.updateBalance(this.userAddress)
             // update transaction
-
+            this.transactions = await this.libra.updateTransaction(this.userAddress)
         } catch(err) {
             alert(err)
         }
-        
-        /*
-        this.libra = new LibraService()
-        this.client = this.libra.getClient()
-        if(this.libra.isWalletExist()) {
-            // load wallet
-            this.wallet = this.libra.loadWallet()
-            this.userAddress = this.wallet.address
-        } else {
-            // create wallet
-            this.wallet = this.libra.createWallet()
-            this.libra.saveWallet(this.wallet)
-            this.userAddress = this.wallet.address
-            await this.libra.mint(this.wallet.address, 1000)
-        }
-        // update ui
-        let result = await this.libra.getBalance(this.client, this.wallet.address)
-        this.wallet.balance = result.balance
-        this.libra.saveBalance(this.wallet.balance)
-        this.balance = this.wallet.balance
-        // fetch transactions
-        this.transactions =  await this.libra.getTransactionHistory(this.wallet.address)
-        this.isLoadingTransactions = false
-        */
     },
     methods: {
         getImagePath(img) {
@@ -138,10 +114,6 @@ export default {
         },
         openExplorer(link) {
             chrome.tabs.create({url:link})
-        },
-        async test () {
-            let aa = await this.libra.test()
-            alert(aa)
         }
     }
 }
