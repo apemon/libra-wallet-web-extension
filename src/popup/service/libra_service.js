@@ -129,34 +129,27 @@ class LibraService {
         })
         return promise
     }
-    
-    // copy from libra-wallet-poc
-    async transfer (client, mnemonic, address, amount) {
-        const wallet = new LibraWallet({ mnemonic: mnemonic })
-        const account = wallet.generateAccount(0) // Derivation paths to "LIBRA WALLET: derived key$0"
-        const amountToTransfer = BigNumber(amount).times(1e6) // Amount in micro libras
 
-        // Stamp account state before transfering
-        const beforeAccountState = await client.getAccountState(account.getAddress())
-
-        // Transfer
-        const response = await client.transferCoins(account, address, amountToTransfer)
-        // mock
-        return response
-        if (response.acStatus !== LibraAdmissionControlStatus.ACCEPTED) {
-            throw new Error(`admission_control failed with status ${LibraAdmissionControlStatus[response.acStatus]}`)
+    async transfer(address, amount) {
+        let msg = {
+            from: 'popup',
+            type: 'TRANSFER_REQUEST',
+            data: {
+                address: address,
+                amount: amount
+            }
         }
-
-        // Ensure sender account balance was reduced accordingly
-        await response.awaitConfirmation(client)
-        const afterAccountState = await client.getAccountState(account.getAddress())
-        if (afterAccountState.balance.toString(10) !== beforeAccountState.balance.minus(amountToTransfer).toString(10)) {
-            throw new Error(`transfer failed`)
-        }
-
-        return response
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                if(res.error)
+                    reject(res.error)
+                else resolve()
+            })
+        })
+        return promise
     }
-
+    
+    /*
     test() {
         let msg = {
             type: 'ACCOUNT_INFO'
@@ -168,6 +161,7 @@ class LibraService {
         })
         return promise
     }
+    */
 }
 
 export default LibraService

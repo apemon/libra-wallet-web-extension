@@ -5,7 +5,7 @@ const moment = require('moment')
 const forge = require('node-forge')
 const bip39 = require('bip39')
 
-const LOCK_TIME_PERIOD = 15 * 60
+const LOCK_TIME_PERIOD = 5 * 60
 const LIBRA_SERVICE_URL = 'https://libraservice3.kulap.io'
 
 let wallet = {}
@@ -43,8 +43,9 @@ chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
             response = {
                 type: 'WALLET_EXIST_RESPONSE',
             }
-            if(!isExist)
+            if(!isExist) {
                 response.error = 'EMPTY'
+            }
             reply(response)
             break
         case 'WALLET_INQUIRY_REQUEST':
@@ -112,7 +113,20 @@ chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
             }
             reply(response)
             break
+        case 'TRANSFER_REQUEST':
+            response = {
+                type: 'TRANSFER_RESPONSE'
+            }
+            try {
+                let result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
+                console.log(result)
+            } catch (err) {
+                response.error = err
+            }
+            reply(response)
+            break
     }
+    return true
 })
 
 /*
@@ -331,13 +345,17 @@ function generateWallet () {
     }
 }
 
-async function getBalance (address) {
-    let client = new LibraClient({
+function getClient () {
+    return new LibraClient({
         transferProtocol: 'https',
         host: 'ac-libra-testnet.kulap.io',
         port: '443',
         dataProtocol: 'grpc-web-text'
     })
+}
+
+async function getBalance (address) {
+    let client = getClient()
     const accountState = await client.getAccountState(address)
     const balance = BigNumber(accountState.balance.toString(10))
     const balanceUnit = balance.dividedBy(BigNumber(1e6)).toString(10)
@@ -369,4 +387,29 @@ async function getTransactionHistory (address) {
     } catch (err) {
         throw new Error(err.message)
     }
+}
+
+// copy from libra-wallet-poc
+async function transfer (mnemonic, address, amount) {
+    const client = getClient()
+    const wallet = new LibraWallet({ mnemonic: mnemonic })
+    const account = wallet.generateAccount(0) // Derivation paths to "LIBRA WALLET: derived key$0"
+    const amountToTransfer = BigNumber(amount).times(1e6) // Amount in micro libras
+
+    // Stamp account state before transfering
+    const beforeAccountState = await client.getAccountState(account.getAddress())
+
+    // Transfer
+    const response = await client.transferCoins(account, address, amountToTransfer)
+    if (response.acStatus !== LibraAdmissionControlStatus.ACCEPTED) {
+        throw new Error(`admission_control failed with status ${LibraAdmissionControlStatus[response.acStatus]}`)
+    }
+
+    // Ensure sender account balance was reduced accordingly
+    await response.awaitConfirmation(client)
+    const afterAccountState = await client.getAccountState(account.getAddress())
+    if (afterAccountState.balance.toString(10) !== beforeAccountState.balance.minus(amountToTransfer).toString(10)) {
+        throw new Error(`transfer failed`)
+    }
+    return response
 }
