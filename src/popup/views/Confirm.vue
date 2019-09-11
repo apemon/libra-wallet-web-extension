@@ -55,35 +55,17 @@ export default {
     },
     async created() {
         this.libra = new LibraService()
-        this.client = this.libra.getClient()
-        this.wallet = this.libra.loadWallet()
         this.amount = this.$route.query.amount
         this.destAddress = this.$route.query.destination
         this.requestId = this.$route.query.id
     },
     methods: {
         async transfer () {
-            let amount = this.amount
-            let destAddress = this.dest
             try {
                 this.isTransfering = true
-                let response = await this.libra.transfer(this.client, this.wallet.mnemonic, destAddress, amount)
+                let result = await this.libra.transfer(this.destAddress, this.amount)
                 this.isTransfering = false
-
-                chrome.tabs.query({active: true}, (tabs) => {
-                    let activeTabs = tabs.filter((tab) => {
-                        return !tab.url.includes('chrome-extension://')
-                    })
-                    let activeTabId = activeTabs[0].id
-                    let request = {
-                        type: 'TRANSFER_RESPONSE',
-                        id: this.requestId,
-                        data: {}
-                    }
-                    chrome.tabs.sendMessage(activeTabId, request, (res) => {
-                        window.close()
-                    })
-                });
+                await this.libra.notifyInpageTransferSuccess(this.requestId, this.destAddress, this.amount, result.expirationTime)
             } catch (err) {
                 this.isTransfering = false
                 this.$buefy.toast.open({
@@ -92,8 +74,8 @@ export default {
                 })
             }
         },
-        reject () {
-
+        async reject () {
+            await this.libra.notifyInpageTransferReject(this.requestId, this.destAddress, this.amount)
         }
     }
 }

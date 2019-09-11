@@ -9,16 +9,16 @@ container.removeChild(scriptTag)
 
 window.addEventListener("message", function(event) {
     // We only accept messages from ourselves
-    //alert(JSON.stringify(event.data))
     if (event.source != window)
         return
     if (!event.data.type)
         return
-    alert(JSON.stringify(event.data))
-    this.chrome.runtime.sendMessage(event.data)
+    chrome.runtime.sendMessage(event.data)
 });
 
 chrome.runtime.onMessage.addListener( (msg, sender, response) => {
-    let event = new CustomEvent(msg.id, msg)
+    let event = new CustomEvent(msg.id, {
+        detail: msg
+    })
     document.dispatchEvent(event)
 })

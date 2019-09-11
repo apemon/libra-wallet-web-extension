@@ -61,8 +61,6 @@ export default {
     },
     async created() {
         this.libra = new LibraService()
-        this.client = this.libra.getClient()
-        this.wallet = this.libra.loadWallet()
     },
     methods: {
         back () {

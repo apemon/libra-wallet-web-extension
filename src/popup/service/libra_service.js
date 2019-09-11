@@ -143,25 +143,49 @@ class LibraService {
             chrome.runtime.sendMessage(msg, (res) => {
                 if(res.error)
                     reject(res.error)
-                else resolve()
+                else resolve(res.data)
             })
         })
         return promise
     }
-    
-    /*
-    test() {
+
+    async notifyInpageTransferSuccess(id, address, amount, expirationTme) {
         let msg = {
-            type: 'ACCOUNT_INFO'
+            from: 'popup',
+            type: 'INPAGE_TRANSFER_NOTIFICATION',
+            id: id,
+            data: {
+                address: address,
+                amount: amount,
+                expirationTme: expirationTme
+            }
         }
         let promise = new Promise((resolve, reject) => {
             chrome.runtime.sendMessage(msg, (res) => {
-                resolve(res.type)
+                window.close()
             })
         })
         return promise
     }
-    */
+
+    async notifyInpageTransferReject(id, address, amount) {
+        let msg = {
+            from: 'popup',
+            type: 'INPAGE_TRANSFER_NOTIFICATION',
+            id: id,
+            data: {
+                address: address,
+                amount: amount
+            },
+            error: 'REJECTED_BY_USER'
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                window.close()
+            })
+        })
+        return promise
+    }
 }
 
 export default LibraService

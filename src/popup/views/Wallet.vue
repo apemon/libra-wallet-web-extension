@@ -99,7 +99,7 @@ export default {
             // update transaction
             this.transactions = await this.libra.updateTransaction(this.userAddress)
         } catch(err) {
-            alert(err)
+            console.log(err)
         }
     },
     methods: {

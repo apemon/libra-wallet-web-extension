@@ -118,64 +118,124 @@ chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
                 type: 'TRANSFER_RESPONSE'
             }
             try {
-                let result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
-                console.log(result)
+                const result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
+                const time = result.signedTransaction.transaction.expirationTime.toNumber() * 1000
+                response.data = {
+                    address: msg.data.address,
+                    amount: msg.data.amount,
+                    expirationTime: time
+                }
             } catch (err) {
                 response.error = err
             }
             reply(response)
             break
+        case 'INPAGE_ACCOUNT_REQUEST':
+            response = {
+                type: 'INPAGE_ACCOUNT_RESPONSE',
+                id: msg.id
+            }
+            if(isWalletLocked)
+                response.error = 'LOCKED'
+            else response.data = {
+                address: wallet.address
+            }
+            await chromeSendTabMessage(response)
+            break
+        case 'INPAGE_BALANCE_REQUEST':
+            response = {
+                type: 'INPAGE_BALANCE_RESPONSE',
+                id: msg.id
+            }
+            if(isWalletLocked)
+                response.error = 'LOCKED'
+            else {
+                balance = await updateBalance(wallet.address)
+                response.data = {
+                    balance: balance
+                }
+            }
+            await chromeSendTabMessage(response)
+            break
+        case 'INPAGE_TRANSACTION_REQUEST':
+            response = {
+                type: 'INPAGE_TRANSACTION_RESPONSE',
+                id: msg.id
+            }
+            if(isWalletLocked)
+                response.error = 'LOCKED'
+            else {
+                transactions = await updateTransaction(wallet.address)
+                response.data = {
+                    transactions: transactions
+                }
+            }
+            await chromeSendTabMessage(response)
+            break
+        case 'INPAGE_TRANSFER_REQUEST':
+            response = {
+                type: 'INPAGE_TRANSACTION_RESPONSE',
+                id: msg.id
+            }
+            if(isWalletLocked) {
+                response.error = 'LOCKED'
+                await chromeSendTabMessage(response)
+            } else {
+                const query = 'destination=' + msg.data.address + '&amount=' + msg.data.amount + '&id=' + msg.id
+                const path = chrome.extension.getURL('popup/popup.html?action=confirm&' + query)
+                chrome.windows.create({
+                    'url': path,
+                    'type': 'popup',
+                    'width': 360,
+                    'height': 600
+                }, (w) => {
+                    
+                })
+            }
+            break
+        case 'INPAGE_TRANSFER_NOTIFICATION':
+            response = {
+                type: 'INPAGE_TRANSFER_RESPONSE',
+                id: msg.id
+            }
+            if(!msg.error) {
+                transactions = await updateTransaction(wallet.address)
+                const transaction = transactions[0]
+                response.data = {
+                    address: msg.data.address,
+                    amount: msg.data.amount,
+                    transaction: transaction
+                }
+            } else {
+                response.error = msg.error
+            }
+            reply(response)
+            await chromeSendTabMessage(response)
+            break
     }
     return true
 })
-
-/*
-chrome.runtime.onMessage.addListener( async (message, sender, reply) => {
-    switch (message.type) {
-        case 'TRANSFER_REQUEST':
-            let query = 'destination=' + message.data.destination + '&amount=' + message.data.amount + '&id=' + message.id
-            let path = chrome.extension.getURL('popup/popup.html?action=confirm&' + query)
-            chrome.windows.create({
-                'url': path,
-                'type': 'popup',
-                'width': 360,
-                'height': 600
-            }, (w) => {
-                
-            })
-            break
-        case 'ACCOUNT_REQUEST':
-            alert(JSON.stringify(message))
-            alert(localStorage.getItem(address))
-            alert(libra.loadWallet().address)
-            chrome.tabs.query({active: true}, (tabs) => {
-                let activeTabs = tabs.filter((tab) => {
-                    return !tab.url.includes('chrome-extension://')
-                })
-                let activeTabId = activeTabs[0].id
-                alert(JSON.stringify(activeTabs))
-                let request = {
-                    type: 'ACCOUNT_RESPONSE',
-                    data: 'aaa',
-                    id: message.id
-                }
-                chrome.tabs.sendMessage(activeTabId, request, (res) => {
-                    alert(JSON.stringify(res))
-                })
-            })
-            break
-        case 'TEST':
-            let res = await axios.get('http://www.google.com')
-            alert(res.data)
-    }
-})
-*/
 
 /* chrome related function here */
 function chromeSendMessage(msg) {
     let promise = new Promise((resolve, reject) => {
         chrome.runtime.sendMessage(msg, (res) => {
             resolve()
+        })
+    })
+    return promise
+}
+
+function chromeSendTabMessage(msg) {
+    let promise = new Promise((resolve, reject) => {
+        chrome.tabs.query({active: true}, (tabs) => {
+            let activeTabs = tabs.filter((tab) => {
+                return !tab.url.includes('chrome-extension://')
+            })
+            let activeTabId = activeTabs[0].id
+            chrome.tabs.sendMessage(activeTabId, msg, (res) => {
+                resolve()
+            })
         })
     })
     return promise

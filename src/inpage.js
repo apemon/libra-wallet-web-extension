@@ -2,19 +2,60 @@ const uuid = require('uuid/v4')
 
 class LibraMask {
     constructor () {
-        this.promises = {}
+        
     }
 
     getAccount() {
         let id = uuid()
         let request = {
-            type: 'ACCOUNT_REQUEST',
+            type: 'INPAGE_ACCOUNT_REQUEST',
+            from: 'inpage',
             id: id
         }
         let promise = new Promise((resolve, reject) => {
             document.addEventListener(id, (e) => {
-                alert(JSON.stringify(e))
-                resolve(e.detail)
+                if(e.detail.error)
+                    reject(e.detail.error)
+                else
+                    resolve(e.detail.data.address)
+            })
+        })
+        window.postMessage(request, '*')
+        return promise
+    }
+
+    getBalance() {
+        let id = uuid()
+        let request = {
+            type: 'INPAGE_BALANCE_REQUEST',
+            from: 'inpage',
+            id: id
+        }
+        let promise = new Promise((resolve, reject) => {
+            document.addEventListener(id, (e) => {
+                if(e.detail.error)
+                    reject(e.detail.error)
+                else
+                    resolve(e.detail.data.balance)
+            })
+        })
+        window.postMessage(request, '*')
+        return promise
+    }
+
+    getTransactions() {
+        let id = uuid()
+        let request = {
+            type: 'INPAGE_TRANSACTION_REQUEST',
+            from: 'inpage',
+            id: id
+        }
+        let promise = new Promise((resolve, reject) => {
+            document.addEventListener(id, (e) => {
+                if(e.detail.error)
+                    reject(e.detail.error)
+                else
+                    resolve(e.detail.data.transactions)
             })
         })
         window.postMessage(request, '*')
@@ -24,16 +65,20 @@ class LibraMask {
     transfer(destination, amount) {
         let id = uuid()
         let request = {
-            type: 'TRANSFER_REQUEST',
+            type: 'INPAGE_TRANSFER_REQUEST',
+            from: 'inpage',
             id: id,
             data: {
-                destination: destination,
-                amount: amount | 0
+                address: destination,
+                amount: amount
             }
         }
         let promise = new Promise((resolve, reject) => {
             document.addEventListener(id, (e) => {
-                resolve(e.data)
+                if(e.detail.error)
+                    reject(e.detail.error)
+                else
+                    resolve(e.detail.data.transaction)
             })
         })
         window.postMessage(request, '*')
