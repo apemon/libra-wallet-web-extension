@@ -13,8 +13,205 @@ let balance = 0
 let transactions = []
 let isWalletLocked = true
 
+function reloadExtension() {
+    chrome.runtime.onMessage.addListener( (msg, sender) => {
+        return true
+    })
+}
+
+chrome.runtime.reload ? reloadExtension(): true
+
 chrome.runtime.onInstalled.addListener(() => {
-    
+    chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
+        let response = {}
+        switch (msg.type) {
+            case 'WALLET_CREATE_REQUEST':
+                const password = msg.data.password
+                wallet = await createWallet(password)
+                response = {
+                    type: 'WALLET_CREATE_RESPONSE',
+                    data: wallet
+                }
+                isWalletLocked = false
+                reply(response)
+                break
+            case 'WALLET_EXIST_REQUEST':
+                const isExist = await walletExist()
+                response = {
+                    type: 'WALLET_EXIST_RESPONSE',
+                }
+                if(!isExist) {
+                    response.error = 'EMPTY'
+                }
+                reply(response)
+                break
+            case 'WALLET_INQUIRY_REQUEST':
+                response = {
+                    type: 'WALLET_INQUIRY_RESPONSE',
+                }
+                if(isWalletLocked)
+                    response.error = 'LOCKED'
+                else response.data = wallet
+                reply(response)
+                break
+            case 'WALLET_UNLOCK_REQUEST':
+                response = {
+                    type: 'WALLET_UNLOCK_RESPONSE'
+                }
+                try {
+                    wallet = await unlockWallet(msg.data.password)
+                    isWalletLocked = false
+                } catch (err) {
+                    response.error = err
+                }
+                reply(response)
+                break
+            case 'BALANCE_INQUIRY_REQUEST':
+                balance = await inquiryBalance()
+                response = {
+                    type: 'BALANCE_INQUIRY_RESPONSE',
+                    data: {
+                        address: msg.data.address,
+                        balance: balance
+                    }
+                }
+                reply(response)
+                break
+            case 'BALANCE_UPDATE_REQUEST':
+                balance = await updateBalance(msg.data.address)
+                response = {
+                    type: 'BALANCE_UPDATE_RESPONSE',
+                    data: {
+                        address: msg.data.address,
+                        balance: balance
+                    }
+                }
+                reply(response)
+                break
+            case 'TRANSACTION_INQUIRY_REQUEST':
+                transactions = await inquiryTransaction()
+                response = {
+                    type: 'TRANSACTION_INQUIRY_RESPONSE',
+                    data: {
+                        address: msg.data.address,
+                        transactions: transactions
+                    }
+                }
+                reply(response)
+                break
+            case 'TRANSACTION_UPDATE_REQUEST':
+                transactions = await updateTransaction(msg.data.address)
+                response = {
+                    type: 'TRANSACTION_UPDATE_RESPONSE',
+                    data: {
+                        address: msg.data.address,
+                        transactions: transactions
+                    }
+                }
+                reply(response)
+                break
+            case 'TRANSFER_REQUEST':
+                response = {
+                    type: 'TRANSFER_RESPONSE'
+                }
+                try {
+                    const result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
+                    const time = result.signedTransaction.transaction.expirationTime.toNumber() * 1000
+                    response.data = {
+                        address: msg.data.address,
+                        amount: msg.data.amount,
+                        expirationTime: time
+                    }
+                } catch (err) {
+                    response.error = err
+                }
+                reply(response)
+                break
+            case 'INPAGE_ACCOUNT_REQUEST':
+                response = {
+                    type: 'INPAGE_ACCOUNT_RESPONSE',
+                    id: msg.id
+                }
+                if(isWalletLocked)
+                    response.error = 'LOCKED'
+                else response.data = {
+                    address: wallet.address
+                }
+                await chromeSendTabMessage(response)
+                break
+            case 'INPAGE_BALANCE_REQUEST':
+                response = {
+                    type: 'INPAGE_BALANCE_RESPONSE',
+                    id: msg.id
+                }
+                if(isWalletLocked)
+                    response.error = 'LOCKED'
+                else {
+                    balance = await updateBalance(wallet.address)
+                    response.data = {
+                        balance: balance
+                    }
+                }
+                await chromeSendTabMessage(response)
+                break
+            case 'INPAGE_TRANSACTION_REQUEST':
+                response = {
+                    type: 'INPAGE_TRANSACTION_RESPONSE',
+                    id: msg.id
+                }
+                if(isWalletLocked)
+                    response.error = 'LOCKED'
+                else {
+                    transactions = await updateTransaction(wallet.address)
+                    response.data = {
+                        transactions: transactions
+                    }
+                }
+                await chromeSendTabMessage(response)
+                break
+            case 'INPAGE_TRANSFER_REQUEST':
+                response = {
+                    type: 'INPAGE_TRANSACTION_RESPONSE',
+                    id: msg.id
+                }
+                if(isWalletLocked) {
+                    response.error = 'LOCKED'
+                    await chromeSendTabMessage(response)
+                } else {
+                    const query = 'destination=' + msg.data.address + '&amount=' + msg.data.amount + '&id=' + msg.id
+                    const path = chrome.extension.getURL('popup/popup.html?action=confirm&' + query)
+                    chrome.windows.create({
+                        'url': path,
+                        'type': 'popup',
+                        'width': 360,
+                        'height': 600
+                    }, (w) => {
+                        
+                    })
+                }
+                break
+            case 'INPAGE_TRANSFER_NOTIFICATION':
+                response = {
+                    type: 'INPAGE_TRANSFER_RESPONSE',
+                    id: msg.id
+                }
+                if(!msg.error) {
+                    transactions = await updateTransaction(wallet.address)
+                    const transaction = transactions[0]
+                    response.data = {
+                        address: msg.data.address,
+                        amount: msg.data.amount,
+                        transaction: transaction
+                    }
+                } else {
+                    response.error = msg.error
+                }
+                reply(response)
+                await chromeSendTabMessage(response)
+                break
+        }
+        return true
+    })
 })
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -23,197 +220,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         isWalletLocked = true
         chrome.alarms.clear(alarm.name)
     }
-})
-
-chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
-    let response = {}
-    switch (msg.type) {
-        case 'WALLET_CREATE_REQUEST':
-            const password = msg.data.password
-            wallet = await createWallet(password)
-            response = {
-                type: 'WALLET_CREATE_RESPONSE',
-                data: wallet
-            }
-            isWalletLocked = false
-            reply(response)
-            break
-        case 'WALLET_EXIST_REQUEST':
-            const isExist = await walletExist()
-            response = {
-                type: 'WALLET_EXIST_RESPONSE',
-            }
-            if(!isExist) {
-                response.error = 'EMPTY'
-            }
-            reply(response)
-            break
-        case 'WALLET_INQUIRY_REQUEST':
-            response = {
-                type: 'WALLET_INQUIRY_RESPONSE',
-            }
-            if(isWalletLocked)
-                response.error = 'LOCKED'
-            else response.data = wallet
-            reply(response)
-            break
-        case 'WALLET_UNLOCK_REQUEST':
-            response = {
-                type: 'WALLET_UNLOCK_RESPONSE'
-            }
-            try {
-                wallet = await unlockWallet(msg.data.password)
-                isWalletLocked = false
-            } catch (err) {
-                response.error = err
-            }
-            reply(response)
-            break
-        case 'BALANCE_INQUIRY_REQUEST':
-            balance = await inquiryBalance()
-            response = {
-                type: 'BALANCE_INQUIRY_RESPONSE',
-                data: {
-                    address: msg.data.address,
-                    balance: balance
-                }
-            }
-            reply(response)
-            break
-        case 'BALANCE_UPDATE_REQUEST':
-            balance = await updateBalance(msg.data.address)
-            response = {
-                type: 'BALANCE_UPDATE_RESPONSE',
-                data: {
-                    address: msg.data.address,
-                    balance: balance
-                }
-            }
-            reply(response)
-            break
-        case 'TRANSACTION_INQUIRY_REQUEST':
-            transactions = await inquiryTransaction()
-            response = {
-                type: 'TRANSACTION_INQUIRY_RESPONSE',
-                data: {
-                    address: msg.data.address,
-                    transactions: transactions
-                }
-            }
-            reply(response)
-            break
-        case 'TRANSACTION_UPDATE_REQUEST':
-            transactions = await updateTransaction(msg.data.address)
-            response = {
-                type: 'TRANSACTION_UPDATE_RESPONSE',
-                data: {
-                    address: msg.data.address,
-                    transactions: transactions
-                }
-            }
-            reply(response)
-            break
-        case 'TRANSFER_REQUEST':
-            response = {
-                type: 'TRANSFER_RESPONSE'
-            }
-            try {
-                const result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
-                const time = result.signedTransaction.transaction.expirationTime.toNumber() * 1000
-                response.data = {
-                    address: msg.data.address,
-                    amount: msg.data.amount,
-                    expirationTime: time
-                }
-            } catch (err) {
-                response.error = err
-            }
-            reply(response)
-            break
-        case 'INPAGE_ACCOUNT_REQUEST':
-            response = {
-                type: 'INPAGE_ACCOUNT_RESPONSE',
-                id: msg.id
-            }
-            if(isWalletLocked)
-                response.error = 'LOCKED'
-            else response.data = {
-                address: wallet.address
-            }
-            await chromeSendTabMessage(response)
-            break
-        case 'INPAGE_BALANCE_REQUEST':
-            response = {
-                type: 'INPAGE_BALANCE_RESPONSE',
-                id: msg.id
-            }
-            if(isWalletLocked)
-                response.error = 'LOCKED'
-            else {
-                balance = await updateBalance(wallet.address)
-                response.data = {
-                    balance: balance
-                }
-            }
-            await chromeSendTabMessage(response)
-            break
-        case 'INPAGE_TRANSACTION_REQUEST':
-            response = {
-                type: 'INPAGE_TRANSACTION_RESPONSE',
-                id: msg.id
-            }
-            if(isWalletLocked)
-                response.error = 'LOCKED'
-            else {
-                transactions = await updateTransaction(wallet.address)
-                response.data = {
-                    transactions: transactions
-                }
-            }
-            await chromeSendTabMessage(response)
-            break
-        case 'INPAGE_TRANSFER_REQUEST':
-            response = {
-                type: 'INPAGE_TRANSACTION_RESPONSE',
-                id: msg.id
-            }
-            if(isWalletLocked) {
-                response.error = 'LOCKED'
-                await chromeSendTabMessage(response)
-            } else {
-                const query = 'destination=' + msg.data.address + '&amount=' + msg.data.amount + '&id=' + msg.id
-                const path = chrome.extension.getURL('popup/popup.html?action=confirm&' + query)
-                chrome.windows.create({
-                    'url': path,
-                    'type': 'popup',
-                    'width': 360,
-                    'height': 600
-                }, (w) => {
-                    
-                })
-            }
-            break
-        case 'INPAGE_TRANSFER_NOTIFICATION':
-            response = {
-                type: 'INPAGE_TRANSFER_RESPONSE',
-                id: msg.id
-            }
-            if(!msg.error) {
-                transactions = await updateTransaction(wallet.address)
-                const transaction = transactions[0]
-                response.data = {
-                    address: msg.data.address,
-                    amount: msg.data.amount,
-                    transaction: transaction
-                }
-            } else {
-                response.error = msg.error
-            }
-            reply(response)
-            await chromeSendTabMessage(response)
-            break
-    }
-    return true
 })
 
 /* chrome related function here */
