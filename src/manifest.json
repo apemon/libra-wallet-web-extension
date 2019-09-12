@@ -1,7 +1,7 @@
 {
-  "name": "Kulap Libra Wallet POC Chrome Extension",
-  "description": "a Chrome extension for connect to Libra blockchain. This is port from kulap libra wallet to chrome extension to have integration feature like MetaMask does",
-  "version": "0.0.1",
+  "name": "Libra Wallet POC Chrome Extension",
+  "description": "An Libra Wallet POC in Chrome Browser inspired by MetaMask",
+  "version": "1.0.0",
   "manifest_version": 2,
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
   "icons": {
