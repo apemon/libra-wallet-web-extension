@@ -6,6 +6,7 @@ const forge = require('node-forge')
 const bip39 = require('bip39')
 
 const LOCK_TIME_PERIOD = 5 * 60
+const NOTIFICATION_TIME_PERIOD = 1 * 60
 const LIBRA_SERVICE_URL = 'https://libraservice3.kulap.io'
 
 let wallet = {}
@@ -126,6 +127,10 @@ chrome.runtime.onInstalled.addListener(() => {
                         amount: msg.data.amount,
                         expirationTime: time
                     }
+                    transactions = await updateTransaction(wallet.address)
+                    const transaction = transactions[0]
+                    const id = transaction.transactionVersion.toString()
+                    await chromeSendNotification(id, 'Outgoing Transaction', 'You send ' + msg.data.amount + ' Lib')
                 } catch (err) {
                     response.error = err
                 }
@@ -216,13 +221,41 @@ chrome.runtime.onInstalled.addListener(() => {
         }
         return true
     })
+
+    chrome.notifications.onClicked.addListener((id) => {
+        chrome.tabs.create({url:'https://libexplorer.com/version/' + id})
+    })
+
+    addNotificationAlarm()
 })
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener( async (alarm) => {
     if(alarm.name == 'lockAlarm') {
         wallet = {}
         isWalletLocked = true
         chrome.alarms.clear(alarm.name)
+    } else if(alarm.name == 'notificationAlarm') {
+        const previousHeight = transactions.length
+        const addr = await loadStorage('address')
+        transactions = await updateTransaction(addr.address)
+        const currentHeight = transactions.length
+        if(currentHeight > previousHeight) {
+            const diff = currentHeight - previousHeight
+            for(let i=0;i<diff;i++) {
+                const transaction = transactions[i]
+                const id = transaction.transactionVersion.toString()
+                let title = ''
+                let message = ''
+                if(transaction.event == 'sent') {
+                    title = 'Outgoing Transaction'
+                    message = 'You send ' + transaction.amount + ' Lib'
+                } else {
+                    title = 'Incoming Transaction'
+                    message = 'You receive ' + transaction.amount + ' Lib'
+                }
+                chromeSendNotification(id, title, message)
+            }
+        }
     }
 })
 
@@ -251,10 +284,26 @@ function chromeSendTabMessage(msg) {
     return promise
 }
 
+function chromeSendNotification(id, title, message) {
+    let options = {
+        message: message,
+        title: title,
+        type: 'basic',
+        iconUrl: 'icons/icon_128.png'
+    }
+    chrome.notifications.create(id, options)
+}
+
 /* general function here */
 function addLockAlarm() {
     chrome.alarms.create('lockAlarm', {
         periodInMinutes: LOCK_TIME_PERIOD / 60
+    })
+}
+
+function addNotificationAlarm() {
+    chrome.alarms.create('notificationAlarm', {
+        periodInMinutes: NOTIFICATION_TIME_PERIOD / 60
     })
 }
 
