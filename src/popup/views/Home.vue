@@ -12,6 +12,7 @@
                 inverted outlined>
                     Create New Wallet
                 </b-button>
+                <!--
                 <b-button class="wallet-button"
                 size="is-large"
                 type="is-primary"
@@ -19,6 +20,7 @@
                 inverted outlined>
                     Import Existing Wallet
                 </b-button>
+                -->
             </div>
         </div>
         <div v-else class="wallet-body">

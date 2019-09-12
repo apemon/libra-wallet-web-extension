@@ -21,6 +21,10 @@ function reloadExtension() {
 
 chrome.runtime.reload ? reloadExtension(): true
 
+chrome.runtime.onStartup.addListener(() => {
+    chrome.runtime.reload()
+})
+
 chrome.runtime.onInstalled.addListener(() => {
     chrome.runtime.onMessage.addListener( async (msg, sender, reply) => {
         let response = {}
