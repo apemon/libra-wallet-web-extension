@@ -2,6 +2,8 @@
 ---
 An Libra Wallet POC in Chrome Browser inspired by [MetaMask](https://metamask.io) and [Kulap Libra Wallet POC](https://dev.kulap.io/libra/)
 
+![Libra Chrome Extension App](docs/app-home.png)
+
 ## Feature
 ---
 - creating wallet based on BIP39, receive and transfer libra like normal wallet 💰
