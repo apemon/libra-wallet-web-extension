@@ -4,6 +4,12 @@ An Libra Wallet POC in Chrome Browser inspired by [MetaMask](https://metamask.io
 
 ![Libra Chrome Extension App](docs/app-home.png)
 
+## Live 
+---
+[Chrome Web Extension](https://chrome.google.com/webstore/detail/libra-wallet-poc-chrome-e/hgbfjdbadjhmkmkjfikijdjakeajbaol?utm_source=chrome-ntp-icon)
+
+[Demo Page](https://libra-extension-demo.firebaseapp.com/)
+
 ## Feature
 ---
 - creating wallet based on BIP39, receive and transfer libra like normal wallet 💰
