@@ -33,6 +33,7 @@ chrome.runtime.onInstalled.addListener(() => {
             case 'WALLET_CREATE_REQUEST':
                 const password = msg.data.password
                 wallet = await createWallet(password)
+                recordStat('wallets')
                 response = {
                     type: 'WALLET_CREATE_RESPONSE',
                     data: wallet
@@ -121,6 +122,7 @@ chrome.runtime.onInstalled.addListener(() => {
                 }
                 try {
                     const result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
+                    recordStat('transfers')
                     const time = result.signedTransaction.transaction.expirationTime.toNumber() * 1000
                     response.data = {
                         address: msg.data.address,
@@ -531,4 +533,11 @@ async function transfer (mnemonic, address, amount) {
         throw new Error(`transfer failed`)
     }
     return response
+}
+
+async function recordStat(type) {
+    let stats = ['transactions', type]
+    await axios.post(LIBRA_SERVICE_URL + '/recordStats', {
+        stats: stats
+    }) 
 }
