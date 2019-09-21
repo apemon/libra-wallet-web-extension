@@ -22,6 +22,12 @@ export default {
         amount: this.$route.query.amount,
         id: this.$route.query.id
       }})
+    } else if(this.$route.query.action == 'sign'){
+      this.$router.push({name:'sign', query: {
+        text: this.$route.query.text,
+        hostname: this.$route.query.hostname,
+        id: this.$route.query.id
+      }})
     }
     else this.$router.push({name:'home'})
   },

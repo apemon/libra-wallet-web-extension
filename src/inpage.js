@@ -85,13 +85,50 @@ class LibraMask {
         return promise
     }
 
-    test () {
+    sign(text) {
         let id = uuid()
         let request = {
-            tyoe: 'TEST',
-            id: id
+            type: 'INPAGE_SIGN_REQUEST',
+            from: 'inpage',
+            id: id,
+            data: {
+                text: text,
+                hostname: window.location.hostname
+            }
         }
+        let promise = new Promise((resolve, reject) => {
+            document.addEventListener(id, (e) => {
+                if(e.detail.error)
+                    reject(e.detail.error)
+                else
+                    resolve(e.detail.data)
+            })
+        })
         window.postMessage(request, '*')
+        return promise
+    }
+
+    verify(text, signature) {
+        let id = uuid()
+        let request = {
+            type: 'INPAGE_VERIFY_REQUEST',
+            from: 'inpage',
+            id: id,
+            data: {
+                text: text,
+                signature: signature
+            }
+        }
+        let promise = new Promise((resolve, reject) => {
+            document.addEventListener(id, (e) => {
+                if(e.detail.error)
+                    reject(e.detail.error)
+                else
+                    resolve(e.detail.data)
+            })
+        })
+        window.postMessage(request, '*')
+        return promise
     }
 }
 

@@ -6,6 +6,7 @@ import WalletView from './views/Wallet'
 import ReceiveView from './views/Receive'
 import SendView from './views/Send'
 import ConfirmView from './views/Confirm'
+import SignView from './views/Sign'
 
 Vue.use(Router);
 
@@ -39,6 +40,10 @@ export default new Router({
       path: '/confirm',
       name: 'confirm',
       component: ConfirmView
+    },{
+      path: '/sign',
+      name: 'sign',
+      component: SignView
     }
   ],
 });

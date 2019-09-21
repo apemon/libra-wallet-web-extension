@@ -149,6 +149,24 @@ class LibraService {
         return promise
     }
 
+    async sign(text) {
+        let msg = {
+            from: 'popup',
+            type: 'SIGN_REQUEST',
+            data: {
+                text: text
+            }
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                if(res.error)
+                    reject(res.error)
+                else resolve(res.data)
+            })
+        })
+        return promise
+    }
+
     async notifyInpageTransferSuccess(id, address, amount, expirationTme) {
         let msg = {
             from: 'popup',
@@ -177,6 +195,36 @@ class LibraService {
                 address: address,
                 amount: amount
             },
+            error: 'REJECTED_BY_USER'
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                window.close()
+            })
+        })
+        return promise
+    }
+
+    async notifyInpageSignSuccess(id, signature) {
+        let msg = {
+            from: 'popup',
+            type: 'INPAGE_SIGN_NOTIFICATION',
+            id: id,
+            data: signature
+        }
+        let promise = new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(msg, (res) => {
+                window.close()
+            })
+        })
+        return promise
+    }
+
+    async notifyInpageSignReject(id) {
+        let msg = {
+            from: 'popup',
+            type: 'INPAGE_SIGN_NOTIFICATION',
+            id: id,
             error: 'REJECTED_BY_USER'
         }
         let promise = new Promise((resolve, reject) => {

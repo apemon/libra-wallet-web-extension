@@ -4,6 +4,8 @@ const { LibraClient, LibraWallet, LibraAdmissionControlStatus } = require('kulap
 const moment = require('moment')
 const forge = require('node-forge')
 const bip39 = require('bip39')
+const Buffer = require('buffer/').Buffer
+const Eddsa = require('elliptic').eddsa
 
 const LOCK_TIME_PERIOD = 5 * 60
 const NOTIFICATION_TIME_PERIOD = 1 * 60
@@ -138,6 +140,18 @@ chrome.runtime.onInstalled.addListener(() => {
                 }
                 reply(response)
                 break
+            case 'SIGN_REQUEST':
+                response = {
+                    type: 'SIGN_RESPONSE'
+                }
+                try {
+                    const result = await sign(wallet.mnemonic, msg.data.text)
+                    response.data = result
+                } catch (err) {
+                    response.error = err
+                }
+                reply(response)
+                break
             case 'INPAGE_ACCOUNT_REQUEST':
                 response = {
                     type: 'INPAGE_ACCOUNT_RESPONSE',
@@ -182,7 +196,7 @@ chrome.runtime.onInstalled.addListener(() => {
                 break
             case 'INPAGE_TRANSFER_REQUEST':
                 response = {
-                    type: 'INPAGE_TRANSACTION_RESPONSE',
+                    type: 'INPAGE_TRANSFER_RESPONSE',
                     id: msg.id
                 }
                 if(isWalletLocked) {
@@ -214,6 +228,40 @@ chrome.runtime.onInstalled.addListener(() => {
                         amount: msg.data.amount,
                         transaction: transaction
                     }
+                } else {
+                    response.error = msg.error
+                }
+                reply(response)
+                await chromeSendTabMessage(response)
+                break
+            case 'INPAGE_SIGN_REQUEST':
+                response = {
+                    type: 'INPAGE_SIGN_RESPONSE',
+                    id: msg.id
+                }
+                if(isWalletLocked) {
+                    response.error = 'LOCKED'
+                    await chromeSendTabMessage(response)
+                } else {
+                    const query = 'text=' + msg.data.text + '&hostname=' + msg.data.hostname + '&id=' + msg.id
+                    const path = chrome.extension.getURL('popup/popup.html?action=sign&' + query)
+                    chrome.windows.create({
+                        'url': path,
+                        'type': 'popup',
+                        'width': 360,
+                        'height': 600
+                    }, (w) => {
+                        
+                    })
+                }
+                break
+            case 'INPAGE_SIGN_NOTIFICATION':
+                response = {
+                    type: 'INPAGE_SIGN_RESPONSE',
+                    id: msg.id
+                }
+                if(!msg.error) {
+                    response.data = msg.data
                 } else {
                     response.error = msg.error
                 }
@@ -422,6 +470,12 @@ async function createWallet(password) {
     return wallet
 }
 
+function hashSHA256(text) {
+    let md = forge.md.sha256.create()
+    md.update(text)
+    return md.digest().toHex()
+}
+
 function encrypt(text, password) {
     // generate key
     const iv = forge.random.getBytesSync(32)
@@ -533,6 +587,20 @@ async function transfer (mnemonic, address, amount) {
         throw new Error(`transfer failed`)
     }
     return response
+}
+
+async function sign(mnemonic, text) {
+    const wallet = new LibraWallet({ mnemonic: mnemonic })
+    const account = wallet.generateAccount(0)
+    const hash = hashSHA256(text)
+    const hex = Uint8Array.from(Buffer.from(hash, 'hex'))
+    const sig = account.keyPair.eddsaPair.sign(hex).toHex()
+    const signature = {
+        signature: sig,
+        message: text,
+        hash: hash
+    }
+    return signature
 }
 
 async function recordStat(type) {
