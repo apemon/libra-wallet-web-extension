@@ -76,7 +76,7 @@ export default {
             }
         },
         async reject () {
-            await this.libra.notifyInpageSignSuccess(this.requestId)
+            await this.libra.notifyInpageSignReject(this.requestId)
         }
     }
 }

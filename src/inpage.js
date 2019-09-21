@@ -124,7 +124,7 @@ class LibraMask {
                 if(e.detail.error)
                     reject(e.detail.error)
                 else
-                    resolve(e.detail.data)
+                    resolve()
             })
         })
         window.postMessage(request, '*')

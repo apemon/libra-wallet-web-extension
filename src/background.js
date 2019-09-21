@@ -268,6 +268,21 @@ chrome.runtime.onInstalled.addListener(() => {
                 reply(response)
                 await chromeSendTabMessage(response)
                 break
+            case 'INPAGE_VERIFY_REQUEST':
+                response = {
+                    type: 'INPAGE_VERIFY_RESPONSE',
+                    id: msg.id
+                }
+                if(isWalletLocked)
+                    response.error = 'LOCKED'
+                else {
+                    let isValid = await verify(wallet.mnemonic, msg.data.text, msg.data.signature)
+                    console.log(isValid)
+                    if(!isValid)
+                        response.error = 'INVALID_SIGNATURE'
+                }
+                await chromeSendTabMessage(response)
+                break
         }
         return true
     })
@@ -601,6 +616,15 @@ async function sign(mnemonic, text) {
         hash: hash
     }
     return signature
+}
+
+async function verify(mnemonic, text, sig) {
+    const wallet = new LibraWallet({ mnemonic: mnemonic })
+    const account = wallet.generateAccount(0)
+    const hash = hashSHA256(text)
+    const eddsa = new Eddsa('ed25519')
+    const signature = eddsa.makeSignature(sig)
+    return account.keyPair.eddsaPair.verify(hash, signature)
 }
 
 async function recordStat(type) {
