@@ -1,7 +1,23 @@
 <template>
     <section class="container hero is-medium is-primary">
+        <!--
+        <div class="wallet-nav">
+            <b-dropdown aria-role="list" class="wallet-menu">
+                <b-icon icon="ellipsis-h" slot="trigger">
+                </b-icon>
+
+                <b-dropdown-item aria-role="listitem" @click="test">
+                    <b-icon icon="file-export" />
+                    Backup
+                </b-dropdown-item>
+                <b-dropdown-item aria-role="listitem">
+                    <b-icon icon="trash-alt" />
+                    Delete Wallet
+                </b-dropdown-item>
+            </b-dropdown>
+        </div>
+        -->
         <div class="wallet-body">
-            <!-- generate new wallet if not exist -->
             <!-- wallet -->
             <div>
                 <Avatar
@@ -114,6 +130,9 @@ export default {
         },
         openExplorer(link) {
             chrome.tabs.create({url:link})
+        },
+        deleteWallet() {
+            console.log('deleted')
         }
     }
 }
@@ -125,6 +144,12 @@ export default {
 }
 .wallet-balance {
     font-size: 32px;
+}
+.wallet-nav {
+    text-align: right;
+}
+.wallet-menu {
+    padding: 5px 20px;
 }
 .wallet-balance-image {
     height: 22px;

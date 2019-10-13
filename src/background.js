@@ -10,6 +10,7 @@ const Eddsa = require('elliptic').eddsa
 const LOCK_TIME_PERIOD = 5 * 60
 const NOTIFICATION_TIME_PERIOD = 1 * 60
 const LIBRA_SERVICE_URL = 'https://libraservice3.kulap.io'
+const MINTER_ADDRESS = '000000000000000000000000000000000000000000000000000000000a550c18'
 
 let wallet = {}
 let balance = 0
@@ -123,13 +124,11 @@ chrome.runtime.onInstalled.addListener(() => {
                     type: 'TRANSFER_RESPONSE'
                 }
                 try {
-                    const result = await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
+                    await transfer(wallet.mnemonic, msg.data.address, msg.data.amount)
                     recordStat('transfers')
-                    const time = result.signedTransaction.transaction.expirationTime.toNumber() * 1000
                     response.data = {
                         address: msg.data.address,
-                        amount: msg.data.amount,
-                        expirationTime: time
+                        amount: msg.data.amount
                     }
                     transactions = await updateTransaction(wallet.address)
                     const transaction = transactions[0]
@@ -565,7 +564,7 @@ async function getTransactionHistory (address) {
         const response = await axios.post(LIBRA_SERVICE_URL + '/transactionHistory', {address: address})
         let transactions = response.data.transactions.map( (tx) => {
             // check minter
-            if(tx.fromAddress == '000000000000000000000000000000000000000000000000000000000a550c18') {
+            if(tx.fromAddress == MINTER_ADDRESS) {
                 tx.event = 'mint'
             }
             // format date
@@ -591,15 +590,9 @@ async function transfer (mnemonic, address, amount) {
 
     // Transfer
     const response = await client.transferCoins(account, address, amountToTransfer)
-    if (response.acStatus !== LibraAdmissionControlStatus.ACCEPTED) {
+    console.log(response)
+    if (response.getAcStatus().getCode() !== LibraAdmissionControlStatus.ACCEPTED) {
         throw new Error(`admission_control failed with status ${LibraAdmissionControlStatus[response.acStatus]}`)
-    }
-
-    // Ensure sender account balance was reduced accordingly
-    await response.awaitConfirmation(client)
-    const afterAccountState = await client.getAccountState(account.getAddress())
-    if (afterAccountState.balance.toString(10) !== beforeAccountState.balance.minus(amountToTransfer).toString(10)) {
-        throw new Error(`transfer failed`)
     }
     return response
 }
